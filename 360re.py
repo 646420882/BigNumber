@@ -4,7 +4,7 @@ import time
 import sys
 import configparser
 from lxml import etree
-
+import re
 config = configparser.ConfigParser()
 config.read('config.ini', encoding='utf-8-sig')
 
@@ -53,9 +53,11 @@ def get_html(url):
 def parse(html):
     global ad_index, ad_url
     # ad_index:显示链接 ad_title:广告标题 ad_url:广告标题链接
-    sel = etree.HTML(html)
+    index_pattern =
     ####左侧头部####
     try:
+        index_pattern =re.compile('<ul id="e_idea_pp"',re.S)
+
         ad_index1 = sel.xpath('//ul[@id="e_idea_pp"]/li//cite/text()')[:-1]  # 删掉360自身广告
         for i in ad_index1:
             ad_index.append(i)
