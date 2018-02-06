@@ -3,6 +3,7 @@ import random
 import time
 import sys
 import configparser
+#from multiprocessing import Pool
 from lxml import etree
 
 config = configparser.ConfigParser()
@@ -14,7 +15,7 @@ whitelist = config.get('set', 'whitelist').split(',')
 switch = config.getboolean('click', 'switch')
 click_num = int(config.get('click', 'click_num'))
 sleep = int(config.get('click', 'sleep'))
-keyword = input('请输入搜索词：\n')
+#keywords = ['广州律师咨询','委托合同律师']
 
 
 UA_list = [
@@ -37,33 +38,47 @@ UA_list = [
     "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/535.24 (KHTML, like Gecko) Chrome/19.0.1055.1 Safari/535.24",
     "Mozilla/5.0 (Windows NT 6.2; WOW64) AppleWebKit/535.24 (KHTML, like Gecko) Chrome/19.0.1055.1 Safari/535.24"
 ]
-ad_index = []  # 显示URL
-ad_url = []  # 广告链接
-ad_landurl = []  # 落地页链接
 ad_id = []  # 广告位置
+ad_index = []  # 显示URL
+ad_landurl = []  # 落地页链接
+ad_url = []  # 广告链接
+
 
 # whitelist=['www.ftlvsuo.com','www.lawyer64.cn','www.jylvsuo.com','www.jyfirm.cn','m.mzvip.top']
 
 def get_html(url):
     global UA_list
-    UA = random.choice(UA_list)
-    headers = {'User-Agent': UA}
-    r = requests.get(url,headers=headers)
-    return r.text
+    while True:
+        UA = random.choice(UA_list)
+        headers = {'User-Agent': UA}
+        try:
+            r = requests.get(url, headers=headers)
+            try:
+                sel = etree.HTML(r.text)
+                s = sel.xpath('//*[@id="container"]/div[1]/p[1]/text()')[0]  # 落地页
+                print(s+'休息30秒')
+                time.sleep(30)
+            except:
+                return r.text
+        except:
+            print('获取网页出错')
+            sys.exit()
+
+
 def parse(html):
-    global ad_index, ad_url
+    global ad_id,ad_index, ad_url,ad_landurl
     # ad_index:显示链接 ad_title:广告标题 ad_url:广告标题链接
     sel = etree.HTML(html)
     ####左侧头部####
     try:
-        ad_index1 = sel.xpath('//ul[@id="e_idea_pp"]/li//cite/text()')[:-1]  # 删掉360自身广告
+        ad_index1 = sel.xpath('//ul[@id="e_idea_pp"]/li//cite/text()')[:-1]  # 删掉360自身广告  # 显示URL
         for i in ad_index1:
             ad_index.append(i)
             ad_id.append('left-head')
-        ad_url1 = sel.xpath('//ul[@id="e_idea_pp"]/li/a/@href')
+        ad_url1 = sel.xpath('//ul[@id="e_idea_pp"]/li/a/@href')  # 广告链接
         for i in ad_url1:
             ad_url.append(i)
-        ad_landurl1 = sel.xpath('//ul[@id="e_idea_pp"]/li/a/@e-landurl')
+        ad_landurl1 = sel.xpath('//ul[@id="e_idea_pp"]/li/a/@e-landurl')  # 落地页
         for i in ad_landurl1:
             ad_landurl.append(i)
     except:
@@ -90,18 +105,24 @@ def parse(html):
             ad_id.append('right')
         ad_url1 = sel.xpath('//ul[@id="rightbox"]/li/h3/a/@href')[:-1]  # 删掉360自身广告
         for i in ad_url1:
+            ad_landurl.append('未显示')
             ad_url.append(i)
     except:
         print('右边没有广告')
 def show():
     n = 1
-    for a, b ,c in zip(ad_id,ad_index, ad_url):
-        print('排名' + str(n) + '  位置：' + a + '\n' + '首页:' + b + '\n' + '链接:' + b + '\n')
+    for a, b ,c , d in zip(ad_id,ad_index, ad_landurl,ad_url):
+        print('排名' + str(n) + '  位置：' + a + '\n' + '首页:' + b + '\n' + '落地页:' + c + '\n'+ '链接:' + d + '\n')
         n += 1
     if my_index in ad_index:
         print('我的排名：%s\n' % (ad_index.index(my_index) + 1))
     else:
         print('暂无排名\n')
+def sort(keyword):
+    if my_index in ad_index:
+        return keyword+':'+str(ad_index.index(my_index) + 1)
+    else:
+        return keyword+':'+'暂无排名'
 def click(click_num):
     try:
         a = int(input('选择排名\n'))
@@ -124,15 +145,41 @@ def click(click_num):
             print('网页无响应，等待30秒')
             time.sleep(sleep)
     print('\n点击完成')
+def write_to_file(content):
+    with open('result.txt', 'a', encoding='utf-8') as f:
+        f.write(content + '\n')
+        f.close()
 def main(keyword):
+    global ad_id,ad_index,ad_landurl,ad_url
+    ad_id = []  # 广告位置
+    ad_index = []  # 显示URL
+    ad_landurl = []  # 落地页链接
+    ad_url = []  # 广告链接
+
     url = 'https://www.so.com/s?q=' + keyword
     html = get_html(url)
     parse(html)
-    show()
+    #show()
+    key=sort(keyword)
+    print(key)
+    write_to_file(key)
     if switch:
         click(click_num)
+def get_keywords():
+    global keywords
+    with open('关键词.txt','r') as f:
+        keywords = f.read().splitlines()
 if __name__=='__main__':
     print('您的网站：%s' % my_index)
     print('白名单：%s\n' % whitelist)
-    main(keyword)
+    get_keywords()
+    #print(keywords)
+    for keyword in keywords:
+        main(keyword)
+        #time.sleep(1.2)
+    #pool = Pool()
+    #pool.map(main, keywords)
+    #pool.close()
+    #pool.join()
+
 
