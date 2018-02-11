@@ -10,11 +10,11 @@ import re
 
 class Search(object):
 
-    def __init__(self):
+    def __init__(self,keyword):
         config = configparser.ConfigParser()
         config.read('config.ini', encoding='utf-8-sig')
 
-        self.client = config.get('set', 'client')  # 客户端类型
+        self.client = int(config.get('set', 'client'))  # 客户端类型 【1：360PC】【2:360M】【3：搜狗PC】【4搜狗M】【5神马M】
 
         self.my_index = config.get('set', 'my_index')  # 自己的显示链接
         self.whitelist = config.get('set', 'whitelist').split(',')  # 白名单
@@ -48,68 +48,56 @@ class Search(object):
             "Mozilla/5.0 (iPhone; U; CPU iPhone OS 4_3_3 like Mac OS X; en-us) AppleWebKit/533.17.9 (KHTML, like Gecko) Version/5.0.2 Mobile/8J2 Safari/6533.18.5"
         ]  # 移动端UA列表
 
+        self.url = ''  # 搜索页链接
+        self,keywords = []  # 关键词列表
+        self.keyword = keyword
+
         self.ad_id = []  # 广告位置
         self.ad_index = []  # 显示URL
         self.ad_landurl = []  # 落地页链接
         self.ad_url = []  # 广告链接
 
-    def get_html(self,url):
+
+    def get_html(self):
         while True:
-            if self.client == 'M' or 'm':
-                UA = random.choice(self.UA_list_M)
-            else:
+            if self.client == 1 or self.client == 3:
                 UA = random.choice(self.UA_list_PC)
+                print('选择%s,PC端'%self.client)  # 调试用
+            else:
+                UA = random.choice(self.UA_list_M)
+                print('选择%s,移动端' % self.client)  # 调试用
             headers = {'User-Agent': UA}
             try:
-                r = requests.get(url, headers=headers)
+                r = requests.get(self.url, headers=headers)
                 return r.text
             except:
-                print('获取网页出错')
+                print('获取网页出错，10秒后重试')
+                time.sleep(10)
+    def get_keywords(self):
+        with open('关键词.txt', 'r') as f:
+            self.keywords = f.read().splitlines()
+    def parse(self, html):
+        QiHu = re.compile('<ul id="e_idea_pp".*?<li>.*?<a href="(.*?)" .*?landurl="(.*?)">.*?<cite>(.*?)</cite>',
+                             re.S)
+        items = re.findall(QiHu, html)
+        for item in items:
+            print(item)
+    def main(self):
+        #判断搜索类型
+        if self.client == 1:
+            self.url = 'https://www.so.com/s?q=' + self.keyword
+        elif self.client == 2:
+            self.url = 'https://m.so.com/s?q=' + self.keyword
+        elif self.client == 3:
+            self.url = 'https://www.sogou.com/web?query=' + self.keyword
+        elif self.client == 4:
+            self.url = 'https://wap.sogou.com/web/searchList.jsp?&keyword=' + self.keyword
+        elif self.url == 5:
+            self.url = 'http://m.sm.cn/s?q=' + self.keyword
+        else:
+            print('类型错误')
 
-def parse(html):
-    global ad_id, ad_index, ad_url, ad_landurl
-    # ad_index:显示链接 ad_title:广告标题 ad_url:广告标题链接
-    sel = etree.HTML(html)
-    ####左侧头部####
-    try:
-        ad_index1 = sel.xpath('//ul[@id="e_idea_pp"]/li//cite/text()')[:-1]  # 删掉360自身广告  # 显示URL
-        for i in ad_index1:
-            ad_index.append(i)
-            ad_id.append('left-head')
-        ad_url1 = sel.xpath('//ul[@id="e_idea_pp"]/li/a/@href')  # 广告链接
-        for i in ad_url1:
-            ad_url.append(i)
-        ad_landurl1 = sel.xpath('//ul[@id="e_idea_pp"]/li/a/@e-landurl')  # 落地页
-        for i in ad_landurl1:
-            ad_landurl.append(i)
-    except:
-        print('头部没有广告')
-        ####左侧尾部####
-    try:
-        ad_index1 = sel.xpath('//ul[@id="e_idea_pp_vip_bottom"]/li//cite/text()')
-        for i in ad_index1:
-            ad_index.append(i)
-            ad_id.append('left-foot')
-        ad_url1 = sel.xpath('//ul[@id="e_idea_pp_vip_bottom"]/li/a/@href')
-        for i in ad_url1:
-            ad_url.append(i)
-        ad_landurl1 = sel.xpath('//ul[@id="e_idea_pp_vip_bottom"]/li/a/@e-landurl')
-        for i in ad_landurl1:
-            ad_landurl.append(i)
-    except:
-        print('尾部没有广告')
-        ####右侧广告位####
-    try:
-        ad_index1 = sel.xpath('//ul[@id="rightbox"]/li//cite/text()')[:-1]  # 删掉360自身广告
-        for i in ad_index1:
-            ad_index.append(i)
-            ad_id.append('right')
-        ad_url1 = sel.xpath('//ul[@id="rightbox"]/li/h3/a/@href')[:-1]  # 删掉360自身广告
-        for i in ad_url1:
-            ad_landurl.append('未显示')
-            ad_url.append(i)
-    except:
-        print('右边没有广告')
+
 def show():
     n = 1
     for a, b, c, d in zip(ad_id, ad_index, ad_landurl, ad_url):
@@ -167,10 +155,7 @@ def main(keyword):
                 continue
             click(click_index, click_url, click_num)
         print('\n点击完成')
-def get_keywords():
-    global keywords
-    with open('关键词.txt', 'r') as f:
-        keywords = f.read().splitlines()
+
 def 360():
     try:
         sel = etree.HTML(r.text)
