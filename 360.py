@@ -3,7 +3,7 @@ import random
 import time
 import sys
 import configparser
-#from multiprocessing import Pool
+from multiprocessing import Pool
 from lxml import etree
 
 config = configparser.ConfigParser()
@@ -12,7 +12,7 @@ config.read('config.ini', encoding='utf-8-sig')
 my_index = config.get('set', 'my_index')
 whitelist = config.get('set', 'whitelist').split(',')
 
-switch = config.getboolean('click', 'switch')
+switch = int(config.get('click', 'switch'))
 click_num = int(config.get('click', 'click_num'))
 sleep = int(config.get('click', 'sleep'))
 #keywords = ['广州律师咨询','委托合同律师']
@@ -123,28 +123,24 @@ def sort(keyword):
         return keyword+':'+str(ad_index.index(my_index) + 1)
     else:
         return keyword+':'+'暂无排名'
-def click(click_num):
-    try:
-        a = int(input('选择排名\n'))
-        click_index = ad_index[a - 1]
-        click_url = ad_url[a - 1]
-    except:
-        sys.exit('输入错误')
+def click(click_index,click_url,click_num):
+    
     if click_index in whitelist:
         sys.exit('当前网站在白名单中,程序结束')
-    print('\n您选择的是\nindex：%s\nurl:%s\n点击次数：%s\n\n'%(click_index,click_url,click_num))
+    print('\nindex：%s\nurl:%s\n点击次数：%s\n\n'%(click_index,click_url,click_num))
 
     n = 1
     while n <= click_num:
         try:
-            r = requests.get(click_url)
-            if r.status_code == 200:
+            r = requests.get(click_url,timeout=10)
+            if r.status_code == 200 or r.status_code==404:
                 print('第%s次点击'%n)
-                n += 1
+                
         except:
-            print('网页无响应，等待30秒')
+            print('网页无响应，等待%s秒'%sleep)
             time.sleep(sleep)
-    print('\n点击完成')
+        n += 1
+    
 def write_to_file(content):
     with open('result.txt', 'a', encoding='utf-8') as f:
         f.write(content + '\n')
@@ -159,12 +155,29 @@ def main(keyword):
     url = 'https://www.so.com/s?q=' + keyword
     html = get_html(url)
     parse(html)
-    #show()
+    show()
     key=sort(keyword)
     print(key)
     write_to_file(key)
-    if switch:
-        click(click_num)
+    if switch == 1 :
+        try:
+            a = int(input('选择排名\n'))
+            click_index = ad_index[a - 1]
+            click_url = ad_url[a - 1]
+        except:
+            sys.exit('输入错误')
+        click(click_index,click_url,click_num)
+        print('\n点击完成')
+    elif switch == 2 :
+        for click_index,click_url in zip(ad_index,ad_url):
+            if click_index in whitelist:
+                continue
+            click(click_index,click_url,click_num)
+        print('\n点击完成')
+            
+            
+            
+        
 def get_keywords():
     global keywords
     with open('关键词.txt','r') as f:
@@ -172,14 +185,15 @@ def get_keywords():
 if __name__=='__main__':
     print('您的网站：%s' % my_index)
     print('白名单：%s\n' % whitelist)
+    
     get_keywords()
     #print(keywords)
-    for keyword in keywords:
-        main(keyword)
+    #for keyword in keywords:
+        #main(keyword)
         #time.sleep(1.2)
-    #pool = Pool()
-    #pool.map(main, keywords)
-    #pool.close()
-    #pool.join()
+    pool = Pool()
+    pool.map(main, keywords)
+    pool.close()
+    pool.join()
 
 
