@@ -49,8 +49,10 @@ class Search(object):
         ]  # 移动端UA列表
 
         self.url = ''  # 搜索页链接
-        self,keywords = []  # 关键词列表
+        self.keywords = []  # 关键词列表
+
         self.keyword = keyword
+        self.pattern = ''
 
         self.ad_id = []  # 广告位置
         self.ad_index = []  # 显示URL
@@ -77,27 +79,47 @@ class Search(object):
         with open('关键词.txt', 'r') as f:
             self.keywords = f.read().splitlines()
     def parse(self, html):
-        QiHu = re.compile('<ul id="e_idea_pp".*?<li>.*?<a href="(.*?)" .*?landurl="(.*?)">.*?<cite>(.*?)</cite>',
-                             re.S)
-        items = re.findall(QiHu, html)
+        #sel = etree.HTML(html)
+        #items = sel.xpath(self.pattern)
+        pattern = re.compile('<ul id="e_idea_pp".*?</ul>', re.S)
+        html1 = re.findall(pattern, html)[0]
+        items = re.findall(self.pattern, html1)
         for item in items:
             print(item)
-    def main(self):
+    def start(self):
         #判断搜索类型
         if self.client == 1:
+            self.ID = 'QiHu PC'
             self.url = 'https://www.so.com/s?q=' + self.keyword
+            self.pattern = re.compile('<li>.*?<a.*? href="(.*?)"',re.S)
         elif self.client == 2:
+            self.ID = 'QiHu M'
             self.url = 'https://m.so.com/s?q=' + self.keyword
+            self.pattern = re.compile(
+                '<ul id="e_idea_pp".*?<li>.*?<a href="(.*?)" .*?landurl="(.*?)">.*?<cite>(.*?)</cite>', re.S)
         elif self.client == 3:
+            self.ID = 'SoHu PC'
             self.url = 'https://www.sogou.com/web?query=' + self.keyword
+            self.pattern = re.compile(
+                '<ul id="e_idea_pp".*?<li>.*?<a href="(.*?)" .*?landurl="(.*?)">.*?<cite>(.*?)</cite>', re.S)
         elif self.client == 4:
+            self.ID = 'SoHu M'
             self.url = 'https://wap.sogou.com/web/searchList.jsp?&keyword=' + self.keyword
+            self.pattern = re.compile(
+                '<ul id="e_idea_pp".*?<li>.*?<a href="(.*?)" .*?landurl="(.*?)">.*?<cite>(.*?)</cite>', re.S)
         elif self.url == 5:
+            self.ID = 'ShenMa M'
             self.url = 'http://m.sm.cn/s?q=' + self.keyword
+            self.pattern = re.compile(
+                '<ul id="e_idea_pp".*?<li>.*?<a href="(.*?)" .*?landurl="(.*?)">.*?<cite>(.*?)</cite>', re.S)
         else:
             print('类型错误')
-
-
+        print('您的网站：%s' % self.my_index)
+        print('白名单：%s' % self.whitelist)
+        print('黑名单：%s' % self.blacklist)
+        print('点击模式：%s'%self.switch)
+        print('搜索引擎：%s'%self.ID)
+        print('搜索URL：%s'%self.url)
 def show():
     n = 1
     for a, b, c, d in zip(ad_id, ad_index, ad_landurl, ad_url):
@@ -156,7 +178,7 @@ def main(keyword):
             click(click_index, click_url, click_num)
         print('\n点击完成')
 
-def 360():
+def QiHu():
     try:
         sel = etree.HTML(r.text)
         s = sel.xpath('//*[@id="container"]/div[1]/p[1]/text()')[0]  # 落地页
@@ -166,8 +188,12 @@ def 360():
         pass
 
 if __name__ == '__main__':
-    print('您的网站：%s' % my_index)
-    print('白名单：%s\n' % whitelist)
+    keyword = '广州律师事务所'
+    app = Search(keyword)
+    app.start()
+    html = app.get_html()
+    app.parse(html)
+
 
     get_keywords()
     # print(keywords)
