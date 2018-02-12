@@ -57,9 +57,9 @@ class Search(object):
         # self.ad_url_pattern = ''
         # self.ad_landurl_pattern = ''
 
-        self.ad_id = []  # 广告位置
-        self.ad_index = []  # 显示URL
-        self.ad_url = []  # 广告链接
+        # self.ad_id = []  # 广告位置
+        # self.ad_index = []  # 显示URL
+        # self.ad_url = []  # 广告链接
 
 
     def get_html(self):
@@ -73,6 +73,7 @@ class Search(object):
             headers = {'User-Agent': UA}
             try:
                 r = requests.get(self.url, headers=headers)
+                r.encoding = r.apparent_encoding
                 return r.text
             except:
                 print('获取网页出错，10秒后重试')
@@ -84,7 +85,11 @@ class Search(object):
         sel = etree.HTML(html)
         try:
             ad_index = sel.xpath(self.ad_index_pattern)
+            for i in ad_index:
+                print(i)
             ad_url = sel.xpath(self.ad_url_pattern)
+            for i in ad_url:
+                print('url:',i)
             if len(ad_index) != len(ad_url):
                 print('未对齐')
             else:
@@ -107,8 +112,8 @@ class Search(object):
         elif self.client == 2:
             self.url = 'https://m.so.com/s?q=' + self.keyword
             self.ID = 'QiHu M'
-            self.ad_index_pattern = '//div[@class=""tg-wrap""]//a/text()'
-            self.ad_url_pattern = '//div[@class=""tg-wrap""]//a/@href'
+            self.ad_index_pattern = '//div[@class="tg-wrap"]/a/text()'
+            self.ad_url_pattern = '//div[@class="tg-wrap"]/a/@href'
         elif self.client == 3:
             self.ID = 'SoHu PC'
             self.url = 'https://www.sogou.com/web?query=' + self.keyword
@@ -200,7 +205,7 @@ def QiHu():
         pass
 
 if __name__ == '__main__':
-    keyword = '广州律师事务所'
+    keyword = '广州律师咨询'
     app = Search(keyword)
     app.start()
     html = app.get_html()
