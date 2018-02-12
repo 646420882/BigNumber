@@ -71,14 +71,14 @@ def parse(html):
     sel = etree.HTML(html)
     ####左侧头部####
     try:
-        ad_index1 = sel.xpath('//ul[@id="e_idea_pp"]/li//cite/text()')[:-1]  # 删掉360自身广告  # 显示URL
+        ad_index1 = sel.xpath('//ul[@id="e_idea_pp"]/li[not(@id)]//cite/text()')  # 删掉360自身广告  # 显示URL
         for i in ad_index1:
             ad_index.append(i)
             ad_id.append('left-head')
         ad_url1 = sel.xpath('//ul[@id="e_idea_pp"]/li/a/@href')  # 广告链接
         for i in ad_url1:
             ad_url.append(i)
-        ad_landurl1 = sel.xpath('//ul[@id="e_idea_pp"]/li/a/@e-landurl')  # 落地页
+        ad_landurl1 = sel.xpath('//ul[@id="e_idea_pp"]/li[not(@id)]/a/@e-landurl')  # 落地页
         for i in ad_landurl1:
             ad_landurl.append(i)
     except:
