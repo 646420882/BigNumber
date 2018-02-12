@@ -59,7 +59,6 @@ class Search(object):
 
         self.ad_id = []  # 广告位置
         self.ad_index = []  # 显示URL
-        self.ad_landurl = []  # 落地页链接
         self.ad_url = []  # 广告链接
 
 
@@ -86,13 +85,12 @@ class Search(object):
         try:
             ad_index = sel.xpath(self.ad_index_pattern)
             ad_url = sel.xpath(self.ad_url_pattern)
-            ad_landurl = sel.xpath(self.ad_landurl_pattern)
-            if len(ad_index) != len(ad_landurl) or len(ad_index) != len(ad_url):
+            if len(ad_index) != len(ad_url):
                 print('未对齐')
             else:
-                print('%-10s%-20s%-40s%-40s'%('ID','Index','Land_url','url'))
-                for a,b,c in zip(ad_index, ad_landurl, ad_url):
-                    print('%-10s%-20s%-40s%-40s'%(self.ID,a,b,c))
+                print('%-10s%-40s%-40s'%('ID','Index','url'))
+                for a,b in zip(ad_index,ad_url):
+                    print('%-10s%-40s%-40s'%(self.ID,a,b))
         except:
             print('未找到')
             pass
@@ -105,14 +103,12 @@ class Search(object):
             self.url = 'https://www.so.com/s?q=' + self.keyword
             self.ID = 'QiHu PC'
             self.ad_index_pattern = '//ul[@id="e_idea_pp"]/li[not(@id)]//cite/text()'
-            self.ad_landurl_pattern = '//ul[@id="e_idea_pp"]/li[not(@id)]/a/@e-landurl'
             self.ad_url_pattern = '//ul[@id="e_idea_pp"]/li[not(@id)]/a/@href'
         elif self.client == 2:
             self.url = 'https://m.so.com/s?q=' + self.keyword
             self.ID = 'QiHu M'
-            self.ad_index_pattern = ''
-            self.ad_landurl_pattern = ''
-            self.ad_url_pattern = ''
+            self.ad_index_pattern = '//div[@class=""tg-wrap""]//a/text()'
+            self.ad_url_pattern = '//div[@class=""tg-wrap""]//a/@href'
         elif self.client == 3:
             self.ID = 'SoHu PC'
             self.url = 'https://www.sogou.com/web?query=' + self.keyword
