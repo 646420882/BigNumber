@@ -3,7 +3,7 @@ import random
 import time
 import sys
 import configparser
-from multiprocessing import Pool
+
 from lxml import etree
 import re
 
@@ -85,12 +85,19 @@ class Search(object):
         sel = etree.HTML(html)
         try:
             ad_index = sel.xpath(self.ad_index_pattern)
-            for i in ad_index:
-                print(i)
             ad_url = sel.xpath(self.ad_url_pattern)
-            for i in ad_url:
-                print('url:',i)
+            # 去除搜狗显示链接日期
+            if self.client == 3:
+                ad_index1 = []
+                for i in ad_index:
+                    ad_index1.append(i.split()[0])
+                ad_index = ad_index1
+            # 核对【显示链接】【广告链接】是否对应
             if len(ad_index) != len(ad_url):
+                for i in ad_index:
+                    print('index:%s\n'%i)
+                for i in ad_url:
+                    print('ad_url:%s\n'%i)
                 print('未对齐')
             else:
                 print('%-10s%-40s%-40s'%('ID','Index','url'))
@@ -98,11 +105,9 @@ class Search(object):
                     print('%-10s%-40s%-40s'%(self.ID,a,b))
         except:
             print('未找到')
-            pass
 
 
-
-    def start(self):
+    def choice(self):
         #判断搜索类型
         if self.client == 1:
             self.url = 'https://www.so.com/s?q=' + self.keyword
@@ -117,18 +122,18 @@ class Search(object):
         elif self.client == 3:
             self.ID = 'SoHu PC'
             self.url = 'https://www.sogou.com/web?query=' + self.keyword
-            self.pattern = re.compile(
-                '<ul id="e_idea_pp".*?<li>.*?<a href="(.*?)" .*?landurl="(.*?)">.*?<cite>(.*?)</cite>', re.S)
+            self.ad_index_pattern = '//div[@class="biz_sponsor"]/div[@class="biz_rb "]//cite//text()'  # 包含尾部广告
+            self.ad_url_pattern =   '//div[@class="biz_sponsor"]/div[@class="biz_rb "]/h3[@class="biz_title"]/a/@href'  # 包含尾部广告
         elif self.client == 4:
             self.ID = 'SoHu M'
             self.url = 'https://wap.sogou.com/web/searchList.jsp?&keyword=' + self.keyword
-            self.pattern = re.compile(
-                '<ul id="e_idea_pp".*?<li>.*?<a href="(.*?)" .*?landurl="(.*?)">.*?<cite>(.*?)</cite>', re.S)
+            self.ad_index_pattern = '//ul[@id="e_idea_pp"]/li[not(@id)]//cite/text()'
+            self.ad_url_pattern = '//ul[@id="e_idea_pp"]/li[not(@id)]/a/@href'
         elif self.url == 5:
             self.ID = 'ShenMa M'
             self.url = 'http://m.sm.cn/s?q=' + self.keyword
-            self.pattern = re.compile(
-                '<ul id="e_idea_pp".*?<li>.*?<a href="(.*?)" .*?landurl="(.*?)">.*?<cite>(.*?)</cite>', re.S)
+            self.ad_index_pattern = '//ul[@id="e_idea_pp"]/li[not(@id)]//cite/text()'
+            self.ad_url_pattern = '//ul[@id="e_idea_pp"]/li[not(@id)]/a/@href'
         else:
             print('类型错误')
         print('您的网站：%s' % self.my_index)
@@ -137,6 +142,8 @@ class Search(object):
         print('点击模式：%s'%self.switch)
         print('搜索引擎：%s'%self.ID)
         print('搜索URL：%s'%self.url)
+
+
 def show():
     n = 1
     for a, b, c, d in zip(ad_id, ad_index, ad_landurl, ad_url):
@@ -205,9 +212,9 @@ def QiHu():
         pass
 
 if __name__ == '__main__':
-    keyword = '广州律师咨询'
+    keyword = '律师事务所'
     app = Search(keyword)
-    app.start()
+    app.choice()
     html = app.get_html()
     app.parse(html)
 
