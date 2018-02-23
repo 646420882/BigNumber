@@ -57,13 +57,14 @@ class Search(object):
         # self.ad_url_pattern = ''
         # self.ad_landurl_pattern = ''
 
-        # self.ad_id = []  # 广告位置
-        # self.ad_index = []  # 显示URL
-        # self.ad_url = []  # 广告链接
+        self.ID = ''  # 搜索引擎
+        self.ad_index = []  # 显示URL
+        self.ad_url = []  # 广告链接
 
 
     def get_html(self):
         while True:
+            UA = random.choice(self.UA_list_PC)
             if self.client == 1 or self.client == 3:
                 UA = random.choice(self.UA_list_PC)
                 print('选择%s,PC端'%self.client)  # 调试用
@@ -84,29 +85,41 @@ class Search(object):
     def parse(self, html):
         sel = etree.HTML(html)
         try:
-            ad_index = sel.xpath(self.ad_index_pattern)
-            ad_url = sel.xpath(self.ad_url_pattern)
+            self.ad_index = sel.xpath(self.ad_index_pattern)
+            self.ad_url = sel.xpath(self.ad_url_pattern)
             # 去除搜狗显示链接日期
-            if self.client == 3:
+            if self.client == 2:
                 ad_index1 = []
-                for i in ad_index:
+                for i in self.ad_index:
+                    ad_index1.append(i.strip().replace('\n',''))
+                self.ad_index = ad_index1
+            elif self.client == 3:
+                ad_index1 = []
+                for i in self.ad_index:
                     ad_index1.append(i.split()[0])
-                ad_index = ad_index1
+                self.ad_index = ad_index1
+            
             # 核对【显示链接】【广告链接】是否对应
-            if len(ad_index) != len(ad_url):
-                for i in ad_index:
+            if len(self.ad_index) != len(self.ad_url):
+                for i in self.ad_index:
                     print('index:%s\n'%i)
-                for i in ad_url:
+                for i in self.ad_url:
                     print('ad_url:%s\n'%i)
                 print('未对齐')
             else:
                 print('%-10s%-40s%-40s'%('ID','Index','url'))
-                for a,b in zip(ad_index,ad_url):
+                for a,b in zip(self.ad_index,self.ad_url):
                     print('%-10s%-40s%-40s'%(self.ID,a,b))
         except:
             print('未找到')
-
-
+    def show(self):
+        print('我的URL：%s\n'%self.my_index)
+        for i in self.ad_index:
+            print('显示URL:%s'%i)
+        if self.my_index in self.ad_index:
+            print('我的排名：%s\n' % (self.ad_index.index(self.my_index) + 1))
+        else:
+            print('暂无排名\n')
     def choice(self):
         #判断搜索类型
         if self.client == 1:
@@ -117,17 +130,19 @@ class Search(object):
         elif self.client == 2:
             self.url = 'https://m.so.com/s?q=' + self.keyword
             self.ID = 'QiHu M'
-            self.ad_index_pattern = '//div[@class="tg-wrap"]/a/text()'
-            self.ad_url_pattern = '//div[@class="tg-wrap"]/a/@href'
+            self.ad_index_pattern = '//div[@class="r-results"]/div[@class="tg-wrap"]//a[@class="e_fw_brand_link"]/text()'
+            self.ad_url_pattern = '//div[@class="r-results"]/div[@class="tg-wrap"]//a[@class="e_fw_brand_link"]/@href'
         elif self.client == 3:
             self.ID = 'SoHu PC'
             self.url = 'https://www.sogou.com/web?query=' + self.keyword
-            self.ad_index_pattern = '//div[@class="biz_sponsor"]/div[@class="biz_rb "]//cite//text()'  # 包含尾部广告
-            self.ad_url_pattern =   '//div[@class="biz_sponsor"]/div[@class="biz_rb "]/h3[@class="biz_title"]/a/@href'  # 包含尾部广告
+            #self.ad_index_pattern = '//div[@class="biz_sponsor"]/div[@class="biz_rb "]//div[@class="biz_fb"]/cite/text()'
+            #self.ad_url_pattern =   '//div[@class="biz_sponsor"]/div[@class="biz_rb "]/h3[@class="biz_title"]/a[1]/@href'
+            self.ad_index_pattern = '//div[@class="biz_rb "]//div[@class="biz_fb"]/cite/text()'
+            self.ad_url_pattern =   '//div[@class="biz_rb "]/h3[@class="biz_title"]/a[1]/@href'
         elif self.client == 4:
             self.ID = 'SoHu M'
             self.url = 'https://wap.sogou.com/web/searchList.jsp?&keyword=' + self.keyword
-            self.ad_index_pattern = '//ul[@id="e_idea_pp"]/li[not(@id)]//cite/text()'
+            self.ad_index_pattern = '//div[@class="ad_result"]//div[@class="citeurl"]/text()'
             self.ad_url_pattern = '//ul[@id="e_idea_pp"]/li[not(@id)]/a/@href'
         elif self.url == 5:
             self.ID = 'ShenMa M'
@@ -144,15 +159,7 @@ class Search(object):
         print('搜索URL：%s'%self.url)
 
 
-def show():
-    n = 1
-    for a, b, c, d in zip(ad_id, ad_index, ad_landurl, ad_url):
-        print('排名' + str(n) + '  位置：' + a + '\n' + '首页:' + b + '\n' + '落地页:' + c + '\n' + '链接:' + d + '\n')
-        n += 1
-    if my_index in ad_index:
-        print('我的排名：%s\n' % (ad_index.index(my_index) + 1))
-    else:
-        print('暂无排名\n')
+
 def sort(keyword):
     if my_index in ad_index:
         return keyword + ':' + str(ad_index.index(my_index) + 1)
@@ -212,21 +219,19 @@ def QiHu():
         pass
 
 if __name__ == '__main__':
-    keyword = '律师事务所'
+    keyword = input('输入关键词\n')
     app = Search(keyword)
     app.choice()
     html = app.get_html()
     app.parse(html)
+    app.show()
 
 
-    get_keywords()
+    #get_keywords()
     # print(keywords)
     # for keyword in keywords:
     # main(keyword)
     # time.sleep(1.2)
-    pool = Pool()
-    pool.map(main, keywords)
-    pool.close()
-    pool.join()
+
 
 
